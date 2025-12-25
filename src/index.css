@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+  
+  body {
+    @apply bg-slate-50 text-slate-800 font-sans antialiased;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Standardized button styles */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-200 text-slate-700 hover:bg-slate-300 focus:ring-slate-400;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  }
+  
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-200 hover:text-slate-800 focus:ring-slate-400;
+  }
+  
+  /* Card styles - solid background */
+  .card {
+    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+  }
+  
+  /* Input styles with standardized hover */
+  .input {
+    @apply w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 hover:border-slate-400 transition-all duration-200;
+  }
+  
+  /* Select styles with standardized hover */
+  .select {
+    @apply w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 hover:border-slate-400 transition-all duration-200 appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+  
+  .label {
+    @apply block text-sm font-medium text-slate-700 mb-1.5;
+  }
+  
+  /* Badge styles - solid colors */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply bg-emerald-100 text-emerald-700;
+  }
+  
+  .badge-warning {
+    @apply bg-amber-100 text-amber-700;
+  }
+  
+  .badge-danger {
+    @apply bg-red-100 text-red-700;
+  }
+  
+  .badge-info {
+    @apply bg-brand-100 text-brand-700;
+  }
+  
+  .badge-neutral {
+    @apply bg-slate-100 text-slate-600;
+  }
+  
+  /* Stat card - solid colors */
+  .stat-card {
+    @apply card p-6 relative overflow-hidden;
+  }
+  
+  .stat-card::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-1;
+  }
+  
+  /* Sidebar link with standardized hover */
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-200 hover:text-slate-800 transition-all duration-200;
+  }
+  
+  .sidebar-link.active {
+    @apply bg-brand-100 text-brand-700 font-medium;
+  }
+  
+  /* Table row hover */
+  .table-row-hover {
+    @apply hover:bg-slate-50 transition-colors duration-150;
+  }
+  
+  /* Icon button with standardized hover */
+  .icon-btn {
+    @apply p-2 rounded-lg transition-colors duration-200;
+  }
+  
+  .icon-btn-default {
+    @apply text-slate-400 hover:bg-slate-100 hover:text-slate-600;
+  }
+  
+  .icon-btn-danger {
+    @apply text-slate-400 hover:bg-red-50 hover:text-red-600;
+  }
+  
+  .icon-btn-primary {
+    @apply text-slate-400 hover:bg-brand-50 hover:text-brand-600;
+  }
+  
+  /* Screen reader only - for accessibility */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    clip: rect(0, 0, 0, 0);
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-stagger-1 { animation-delay: 0.1s; }
+  .animate-stagger-2 { animation-delay: 0.2s; }
+  .animate-stagger-3 { animation-delay: 0.3s; }
+  .animate-stagger-4 { animation-delay: 0.4s; }
+  .animate-stagger-5 { animation-delay: 0.5s; }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
+
+/* Focus visible for better accessibility */
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-brand-500;
+}
+
+/* Ensure good contrast for interactive elements */
+button:not(:disabled):hover,
+a:not(:disabled):hover {
+  @apply transition-colors duration-200;
+}
