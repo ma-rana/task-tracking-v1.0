@@ -81,6 +81,17 @@ router.post('/users', async (req, res) => {
   try {
     const { fullName, email, password, role, groupId, jobTitle, isAdminUser } = req.body;
 
+    // Validate required fields
+    if (!fullName) {
+      return res.status(400).json({ error: 'Full name is required' });
+    }
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+    if (isAdminUser && !email) {
+      return res.status(400).json({ error: 'Email is required for admin users' });
+    }
+
     // Check if email exists (only if email is provided)
     if (email) {
       const emailCheck = await pool.query('SELECT id FROM users WHERE email = $1', [email]);

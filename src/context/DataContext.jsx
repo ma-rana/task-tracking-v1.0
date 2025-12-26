@@ -11,107 +11,11 @@ export function useData() {
   return context;
 }
 
-// Initial demo groups
-const initialGroups = [
-  {
-    id: 'group-1',
-    name: 'Engineering',
-    description: 'Software development and engineering team',
-    leaderId: 'tl-1',
-    isPublic: false, // Group visibility: true = visible to public, false = private
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'group-2',
-    name: 'Marketing',
-    description: 'Marketing and growth team',
-    leaderId: 'tl-2',
-    isPublic: false, // Private by default
-    createdAt: new Date().toISOString(),
-  },
-];
+// Initial demo groups - empty array for production (groups should come from database)
+const initialGroups = [];
 
-// Initial demo tasks
-const initialTasks = [
-  {
-    id: 'task-1',
-    title: 'Design System Implementation',
-    description: 'Create comprehensive design system with reusable components',
-    assigneeId: 'user-1',
-    groupId: 'group-1',
-    createdBy: 'tl-1',
-    priority: 'high',
-    status: 'in_progress',
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'task-2',
-    title: 'API Integration',
-    description: 'Integrate REST API endpoints with frontend',
-    assigneeId: 'user-2',
-    groupId: 'group-1',
-    createdBy: 'tl-1',
-    priority: 'high',
-    status: 'completed',
-    dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'task-3',
-    title: 'User Testing',
-    description: 'Conduct user testing sessions and gather feedback',
-    assigneeId: 'user-1',
-    groupId: 'group-1',
-    createdBy: 'user-1',
-    priority: 'medium',
-    status: 'pending',
-    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'task-4',
-    title: 'Social Media Campaign',
-    description: 'Launch Q1 social media marketing campaign',
-    assigneeId: 'user-3',
-    groupId: 'group-2',
-    createdBy: 'tl-2',
-    priority: 'high',
-    status: 'in_progress',
-    dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'task-5',
-    title: 'Content Strategy',
-    description: 'Develop content strategy for new product launch',
-    assigneeId: 'user-3',
-    groupId: 'group-2',
-    createdBy: 'tl-2',
-    priority: 'medium',
-    status: 'pending',
-    dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'task-6',
-    title: 'Database Optimization',
-    description: 'Optimize database queries for better performance',
-    assigneeId: 'user-2',
-    groupId: 'group-1',
-    createdBy: 'tl-1',
-    priority: 'low',
-    status: 'completed',
-    dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+// Initial demo tasks - empty array for production (tasks should come from database)
+const initialTasks = [];
 
 export function DataProvider({ children }) {
   const [groups, setGroups] = useState([]);

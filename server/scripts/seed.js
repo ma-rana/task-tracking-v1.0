@@ -13,7 +13,7 @@ async function seed() {
     // Insert one admin user
     const adminUser = {
       id: adminId,
-      full_name: 'Admin User',
+      full_name: 'Basanta Rana Magar',
       email: 'admin@tasktrack.com',
       password: hashedPassword,
       role: 'admin',

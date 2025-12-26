@@ -127,7 +127,7 @@ export default function AdminUserManagement() {
   };
 
   // Handle admin creation
-  const handleCreateAdmin = (e) => {
+  const handleCreateAdmin = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -138,7 +138,7 @@ export default function AdminUserManagement() {
       return;
     }
 
-    const newAdmin = register({
+    const newAdmin = await register({
       fullName: adminForm.fullName.trim(),
       email: adminForm.email.trim().toLowerCase(),
       password: adminForm.password,
@@ -158,7 +158,7 @@ export default function AdminUserManagement() {
   };
 
   // Handle admin update
-  const handleUpdateAdmin = (e) => {
+  const handleUpdateAdmin = async (e) => {
     e.preventDefault();
     if (!selectedAdmin) return;
     
@@ -189,7 +189,7 @@ export default function AdminUserManagement() {
       updates.password = adminForm.password;
     }
 
-    updateUser(selectedAdmin.id, updates);
+    await updateUser(selectedAdmin.id, updates);
     setShowEditModal(false);
     setSelectedAdmin(null);
   };
@@ -329,9 +329,9 @@ export default function AdminUserManagement() {
                         </button>
                         {!admin.isPrimary && (
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               if (window.confirm(`Are you sure you want to delete ${admin.fullName}? This action cannot be undone.`)) {
-                                deleteUser(admin.id);
+                                await deleteUser(admin.id);
                               }
                             }}
                             className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"

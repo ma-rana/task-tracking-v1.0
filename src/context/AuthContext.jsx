@@ -369,111 +369,170 @@ export function AuthProvider({ children }) {
     showToast('You have been logged out', 'info');
   };
 
-  const register = (userData, isAdminUser = false) => {
-    // For admin users, email is required. For public users, email is optional
-    if (isAdminUser && userData.email) {
-      const existingUser = users.find(u => u.email === userData.email);
-      if (existingUser) {
-        showToast('A user with this email already exists', 'error');
+  const register = async (userData, isAdminUser = false) => {
+    try {
+      // For admin users, email is required
+      if (isAdminUser && !userData.email) {
+        showToast('Email is required for admin users', 'error');
         return false;
       }
-    }
-    
-    // Check for duplicate names (for public users without email)
-    if (!isAdminUser && !userData.email) {
-      const existingUser = users.find(u => 
-        !u.isAdminUser && 
-        u.fullName.toLowerCase() === userData.fullName.toLowerCase() &&
-        u.groupId === userData.groupId
-      );
-      if (existingUser) {
-        showToast('A user with this name already exists in this group', 'error');
-        return false;
-      }
-    }
-    
-    const newUser = {
-      ...userData,
-      id: `user-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      isAdminUser,
-      // Email is optional for public users
-      email: userData.email || (isAdminUser ? `admin-${Date.now()}@tasktrack.com` : undefined),
-    };
-    
-    setUsers(prev => [...prev, newUser]);
-    logAuthEvent('USER_REGISTERED', { userId: newUser.id, email: newUser.email || 'N/A', isAdminUser });
-    showToast('User registered successfully', 'success');
-    return newUser;
-  };
 
-  const updateUser = (userId, updates) => {
-    // Prevent changing isAdminUser flag
-    const safeUpdates = { ...updates };
-    delete safeUpdates.isAdminUser;
-    
-    // Ensure admin accounts always have a name
-    const user = users.find(u => u.id === userId);
-    if (user?.isAdminUser && safeUpdates.fullName && safeUpdates.fullName.trim() === '') {
-      // Don't allow empty names for admin accounts
-      showToast('Admin accounts must have a name', 'error');
-      return;
-    }
-    
-    // Check if user is being removed from group (groupId set to null when it wasn't null before)
-    const isRemovingFromGroup = safeUpdates.groupId === null && user?.groupId !== null && user?.groupId !== undefined;
-    
-    setUsers(prev => {
-      const updated = prev.map(u => 
-        u.id === userId ? { ...u, ...safeUpdates } : u
-      );
-      // Ensure all admin names are set
-      return ensureAdminNames(updated);
-    });
-    
-    if (currentUser?.id === userId) {
-      const updatedUser = { ...currentUser, ...safeUpdates };
-      // Ensure admin name is set
-      if (updatedUser.isAdminUser && (!updatedUser.fullName || updatedUser.fullName.trim() === '')) {
-        updatedUser.fullName = updatedUser.email 
-          ? updatedUser.email.split('@')[0].split('.').map(part => 
-              part.charAt(0).toUpperCase() + part.slice(1)
-            ).join(' ')
-          : 'Administrator';
+      // Generate a default password if not provided (for public users without email)
+      const password = userData.password || `temp_${Math.random().toString(36).slice(2, 10)}`;
+
+      // Prepare the request body
+      const requestBody = {
+        fullName: userData.fullName,
+        email: userData.email || null,
+        password: password,
+        role: userData.role || (isAdminUser ? 'admin' : 'client'),
+        groupId: userData.groupId || null,
+        jobTitle: userData.jobTitle || null,
+        isAdminUser: isAdminUser,
+      };
+
+      // Make API call to create user
+      const response = await fetch('/api/auth/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showToast(errorData.error || 'Failed to create user', 'error');
+        return false;
       }
-      setCurrentUser(updatedUser);
-    }
-    
-    logAuthEvent('USER_UPDATED', { userId, updates: Object.keys(safeUpdates) });
-    
-    // Show appropriate message based on action
-    if (isRemovingFromGroup) {
-      showToast('User removed from team successfully', 'success');
-    } else {
-    showToast('User updated successfully', 'success');
+
+      const newUser = await response.json();
+      
+      // Update local state
+      setUsers(prev => [...prev, newUser]);
+      logAuthEvent('USER_REGISTERED', { userId: newUser.id, email: newUser.email || 'N/A', isAdminUser });
+      showToast('User registered successfully', 'success');
+      return newUser;
+    } catch (error) {
+      console.error('Register error:', error);
+      showToast('Failed to create user. Please try again.', 'error');
+      return false;
     }
   };
 
-  const deleteUser = (userId) => {
-    if (userId === currentUser?.id) {
-      showToast('You cannot delete yourself', 'error');
-      return false;
-    }
-    
-    const userToDelete = users.find(u => u.id === userId);
-    if (userToDelete?.isAdminUser) {
-      // Check if it's a primary admin
-      if (userToDelete?.isPrimary) {
-        showToast('Cannot delete primary admin account', 'error');
-      return false;
+  const updateUser = async (userId, updates) => {
+    try {
+      // Prevent changing isAdminUser flag
+      const safeUpdates = { ...updates };
+      delete safeUpdates.isAdminUser;
+      
+      // Ensure admin accounts always have a name
+      const user = users.find(u => u.id === userId);
+      if (user?.isAdminUser && safeUpdates.fullName && safeUpdates.fullName.trim() === '') {
+        // Don't allow empty names for admin accounts
+        showToast('Admin accounts must have a name', 'error');
+        return;
       }
-      // Allow deletion of secondary admin accounts
+      
+      // Check if user is being removed from group (groupId set to null when it wasn't null before)
+      const isRemovingFromGroup = safeUpdates.groupId === null && user?.groupId !== null && user?.groupId !== undefined;
+      
+      // Hash password if it's being updated
+      if (safeUpdates.password) {
+        // Password will be hashed on the server, just send it as-is
+      }
+
+      // Make API call to update user
+      const response = await fetch(`/api/auth/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(safeUpdates),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showToast(errorData.error || 'Failed to update user', 'error');
+        return;
+      }
+
+      const updatedUserData = await response.json();
+      
+      // Update local state
+      setUsers(prev => {
+        const updated = prev.map(u => 
+          u.id === userId ? updatedUserData : u
+        );
+        // Ensure all admin names are set
+        return ensureAdminNames(updated);
+      });
+      
+      if (currentUser?.id === userId) {
+        const updatedUser = { ...currentUser, ...updatedUserData };
+        // Ensure admin name is set
+        if (updatedUser.isAdminUser && (!updatedUser.fullName || updatedUser.fullName.trim() === '')) {
+          updatedUser.fullName = updatedUser.email 
+            ? updatedUser.email.split('@')[0].split('.').map(part => 
+                part.charAt(0).toUpperCase() + part.slice(1)
+              ).join(' ')
+            : 'Administrator';
+        }
+        setCurrentUser(updatedUser);
+      }
+      
+      logAuthEvent('USER_UPDATED', { userId, updates: Object.keys(safeUpdates) });
+      
+      // Show appropriate message based on action
+      if (isRemovingFromGroup) {
+        showToast('User removed from team successfully', 'success');
+      } else {
+        showToast('User updated successfully', 'success');
+      }
+    } catch (error) {
+      console.error('Update user error:', error);
+      showToast('Failed to update user. Please try again.', 'error');
     }
-    
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    logAuthEvent('USER_DELETED', { userId });
-    showToast('User deleted successfully', 'success');
-    return true;
+  };
+
+  const deleteUser = async (userId) => {
+    try {
+      if (userId === currentUser?.id) {
+        showToast('You cannot delete yourself', 'error');
+        return false;
+      }
+      
+      const userToDelete = users.find(u => u.id === userId);
+      if (userToDelete?.isAdminUser) {
+        // Check if it's a primary admin
+        if (userToDelete?.isPrimary) {
+          showToast('Cannot delete primary admin account', 'error');
+          return false;
+        }
+        // Allow deletion of secondary admin accounts
+      }
+      
+      // Make API call to delete user
+      const response = await fetch(`/api/auth/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showToast(errorData.error || 'Failed to delete user', 'error');
+        return false;
+      }
+      
+      // Update local state
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      logAuthEvent('USER_DELETED', { userId });
+      showToast('User deleted successfully', 'success');
+      return true;
+    } catch (error) {
+      console.error('Delete user error:', error);
+      showToast('Failed to delete user. Please try again.', 'error');
+      return false;
+    }
   };
 
   // Set admin as primary (and unset others)

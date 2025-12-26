@@ -138,14 +138,13 @@ export default function UserManagement() {
   };
 
   // Handle user update/create
-  const handleUserSubmit = (e) => {
+  const handleUserSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setIsLoading(true);
     
-    // Simulate async operation
-    setTimeout(() => {
+    try {
       if (selectedUser) {
         // Update existing user
         const updates = {
@@ -159,10 +158,10 @@ export default function UserManagement() {
         if (userForm.password.trim()) {
           updates.password = userForm.password;
         }
-        updateUser(selectedUser.id, updates);
+        await updateUser(selectedUser.id, updates);
       } else {
         // Create new user
-        const newUser = register({
+        const newUser = await register({
           fullName: userForm.fullName.trim(),
           email: userForm.email.trim().toLowerCase(),
           password: userForm.password,
@@ -185,18 +184,24 @@ export default function UserManagement() {
       setIsLoading(false);
       setShowEditModal(false);
       setSelectedUser(null);
-    }, 300);
+    } catch (error) {
+      console.error('Error submitting user form:', error);
+      setIsLoading(false);
+    }
   };
 
   // Handle user deletion
-  const handleDeleteUser = (userId) => {
+  const handleDeleteUser = async (userId) => {
     const user = normalUsers.find(u => u.id === userId);
     if (window.confirm(`Are you sure you want to delete ${user?.fullName}? This action cannot be undone.`)) {
       setIsLoading(true);
-      setTimeout(() => {
-        deleteUser(userId);
+      try {
+        await deleteUser(userId);
+      } catch (error) {
+        console.error('Error deleting user:', error);
+      } finally {
         setIsLoading(false);
-      }, 300);
+      }
     }
   };
 
