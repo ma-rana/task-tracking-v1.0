@@ -15,14 +15,16 @@ import {
   Calendar,
   CheckSquare,
   X,
-  UserPlus
+  UserPlus,
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { format, parseISO } from 'date-fns';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 export default function UserManagement() {
-  const { users, getNormalUsers, updateUser, deleteUser, register } = useAuth();
+  const { users, getNormalUsers, updateUser, deleteUser, register, getPrimaryAdmin, currentUser } = useAuth();
   const { groups, tasks, getTasksByAssignee, getGroupById } = useData();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,13 +40,18 @@ export default function UserManagement() {
   // Form state
   const [userForm, setUserForm] = useState({
     fullName: '',
-    email: '',
-    password: '',
     jobTitle: '',
     groupId: '',
     role: 'client',
   });
   const [formErrors, setFormErrors] = useState({});
+  
+  // Password protection state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [pendingAction, setPendingAction] = useState(null); // 'add' or 'delete'
+  const [pendingDeleteUserId, setPendingDeleteUserId] = useState(null);
 
   // Get only normal users (not admin users)
   const normalUsers = getNormalUsers();
@@ -97,8 +104,6 @@ export default function UserManagement() {
       setSelectedUser(user);
       setUserForm({
         fullName: user.fullName,
-        email: user.email || '',
-        password: '', // Don't show password when editing
         jobTitle: user.jobTitle || '',
         groupId: user.groupId || '',
         role: user.role || 'client',
@@ -107,8 +112,6 @@ export default function UserManagement() {
       setSelectedUser(null);
       setUserForm({
         fullName: '',
-        email: '',
-        password: '',
         jobTitle: '',
         groupId: '',
         role: 'client',
@@ -122,19 +125,93 @@ export default function UserManagement() {
   const validateForm = () => {
     const errors = {};
     if (!userForm.fullName.trim()) errors.fullName = 'Name is required';
-    if (!selectedUser) {
-      // Validation for new user
-      if (!userForm.email.trim()) errors.email = 'Email is required';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userForm.email)) {
-        errors.email = 'Invalid email format';
-      }
-      if (!userForm.password.trim()) errors.password = 'Password is required';
-      else if (userForm.password.length < 6) {
-        errors.password = 'Password must be at least 6 characters';
-      }
-    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+  
+  // Verify authorization password - use current logged-in admin's password
+  const verifyAdminPassword = (password) => {
+    // Check against current logged-in admin user's password
+    if (currentUser && currentUser.isAdminUser && currentUser.password === password) {
+      return true;
+    }
+    // Fallback to primary admin password if current user doesn't have password
+    const primaryAdmin = getPrimaryAdmin();
+    if (primaryAdmin && primaryAdmin.password === password) {
+      return true;
+    }
+    return false;
+  };
+  
+  // Handle password verification
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (!adminPassword.trim()) {
+      setPasswordError('Password is required');
+      return;
+    }
+
+    if (!verifyAdminPassword(adminPassword)) {
+      setPasswordError('Invalid authorization password');
+      return;
+    }
+
+    // Password verified, proceed with pending action
+    setShowPasswordModal(false);
+    setAdminPassword('');
+    
+    if (pendingAction === 'add') {
+      proceedWithAddUser();
+    } else if (pendingAction === 'delete' && pendingDeleteUserId) {
+      proceedWithDeleteUser(pendingDeleteUserId);
+    }
+    
+    setPendingAction(null);
+    setPendingDeleteUserId(null);
+  };
+  
+  // Proceed with adding user after password verification
+  const proceedWithAddUser = async () => {
+    setIsLoading(true);
+    try {
+      const newUser = await register({
+        fullName: userForm.fullName.trim(),
+        email: null, // No email for normal users
+        password: `temp_${Math.random().toString(36).slice(2, 10)}`, // Auto-generate password
+        role: userForm.role,
+        groupId: userForm.groupId || null,
+        jobTitle: userForm.jobTitle || null,
+      }, false);
+      
+      if (newUser) {
+        setUserForm({ 
+          fullName: '', 
+          jobTitle: '', 
+          groupId: '', 
+          role: 'client' 
+        });
+        setShowEditModal(false);
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error('Error adding user:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Proceed with deleting user after password verification
+  const proceedWithDeleteUser = async (userId) => {
+    setIsLoading(true);
+    try {
+      await deleteUser(userId);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle user update/create
@@ -142,66 +219,38 @@ export default function UserManagement() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setIsLoading(true);
-    
-    try {
-      if (selectedUser) {
-        // Update existing user
+    if (selectedUser) {
+      // Update existing user - no password required for updates
+      setIsLoading(true);
+      try {
         const updates = {
           fullName: userForm.fullName,
-          email: userForm.email,
           jobTitle: userForm.jobTitle,
           groupId: userForm.groupId || null,
           role: userForm.role,
         };
-        // Only update password if provided
-        if (userForm.password.trim()) {
-          updates.password = userForm.password;
-        }
         await updateUser(selectedUser.id, updates);
-      } else {
-        // Create new user
-        const newUser = await register({
-          fullName: userForm.fullName.trim(),
-          email: userForm.email.trim().toLowerCase(),
-          password: userForm.password,
-          role: userForm.role,
-          groupId: userForm.groupId || null,
-          jobTitle: userForm.jobTitle || null,
-        }, false);
-        
-        if (newUser) {
-          setUserForm({ 
-            fullName: '', 
-            email: '',
-            password: '',
-            jobTitle: '', 
-            groupId: '', 
-            role: 'client' 
-          });
-        }
+        setShowEditModal(false);
+        setSelectedUser(null);
+      } catch (error) {
+        console.error('Error updating user:', error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-      setShowEditModal(false);
-      setSelectedUser(null);
-    } catch (error) {
-      console.error('Error submitting user form:', error);
-      setIsLoading(false);
+    } else {
+      // Create new user - require password
+      setPendingAction('add');
+      setShowPasswordModal(true);
     }
   };
 
   // Handle user deletion
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = (userId) => {
     const user = normalUsers.find(u => u.id === userId);
     if (window.confirm(`Are you sure you want to delete ${user?.fullName}? This action cannot be undone.`)) {
-      setIsLoading(true);
-      try {
-        await deleteUser(userId);
-      } catch (error) {
-        console.error('Error deleting user:', error);
-      } finally {
-        setIsLoading(false);
-      }
+      setPendingAction('delete');
+      setPendingDeleteUserId(userId);
+      setShowPasswordModal(true);
     }
   };
 
@@ -633,63 +682,6 @@ export default function UserManagement() {
             )}
           </div>
 
-          {!selectedUser && (
-            <>
-              <div>
-                <label className="label">Email *</label>
-                <input
-                  type="email"
-                  value={userForm.email}
-                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  className={`input ${formErrors.email ? 'border-red-500' : ''}`}
-                  placeholder="Enter email address"
-                />
-                {formErrors.email && (
-                  <p className="text-sm text-red-500 mt-1">{formErrors.email}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="label">Password *</label>
-                <input
-                  type="password"
-                  value={userForm.password}
-                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                  className={`input ${formErrors.password ? 'border-red-500' : ''}`}
-                  placeholder="Enter password (min 6 characters)"
-                />
-                {formErrors.password && (
-                  <p className="text-sm text-red-500 mt-1">{formErrors.password}</p>
-                )}
-              </div>
-            </>
-          )}
-
-          {selectedUser && (
-            <div>
-              <label className="label">Email</label>
-              <input
-                type="email"
-                value={userForm.email}
-                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                className="input"
-                placeholder="Enter email address"
-              />
-            </div>
-          )}
-
-          {selectedUser && (
-            <div>
-              <label className="label">New Password (leave empty to keep current)</label>
-              <input
-                type="password"
-                value={userForm.password}
-                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                className="input"
-                placeholder="Enter new password (optional)"
-              />
-            </div>
-          )}
 
           <div>
             <label className="label">Job Title / Role</label>
@@ -751,6 +743,72 @@ export default function UserManagement() {
                   {selectedUser ? 'Update User' : 'Create User'}
                 </>
               )}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Password Verification Modal */}
+      <Modal
+        isOpen={showPasswordModal}
+        onClose={() => {
+          setShowPasswordModal(false);
+          setAdminPassword('');
+          setPasswordError('');
+          setPendingAction(null);
+          setPendingDeleteUserId(null);
+        }}
+        title="Authorization Required"
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800 flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              This action requires security verification.
+            </p>
+          </div>
+
+          <div>
+            <label className="label">Authorization Password *</label>
+            <div className="relative">
+              <input
+                type="password"
+                value={adminPassword}
+                onChange={(e) => {
+                  setAdminPassword(e.target.value);
+                  setPasswordError('');
+                }}
+                className={`input pr-10 ${passwordError ? 'border-red-500' : ''}`}
+                placeholder="Enter authorization password"
+                autoFocus
+              />
+            </div>
+            {passwordError && (
+              <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                <AlertTriangle className="w-4 h-4" />
+                {passwordError}
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordModal(false);
+                setAdminPassword('');
+                setPasswordError('');
+                setPendingAction(null);
+                setPendingDeleteUserId(null);
+              }}
+              className="btn btn-secondary flex-1"
+            >
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary flex-1">
+              <Lock className="w-4 h-4" />
+              Verify
             </button>
           </div>
         </form>

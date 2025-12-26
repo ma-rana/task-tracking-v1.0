@@ -229,16 +229,10 @@ export default function TasksPage() {
       return;
     }
 
-    // Check if user is admin - if not, require password
-    if (!isAdmin) {
-      setPendingAction('deleteTask');
-      setPendingDeleteTaskId(taskId);
-      setShowPasswordModal(true);
-      return;
-    }
-
-    // Admin user - proceed directly
-    deleteTask(taskId);
+    // Always require password for deleting tasks
+    setPendingAction('deleteTask');
+    setPendingDeleteTaskId(taskId);
+    setShowPasswordModal(true);
   };
 
   const handleStatusChange = (taskId, newStatus) => {
@@ -596,15 +590,9 @@ export default function TasksPage() {
       return;
     }
 
-    // Check if user is admin - if not, require password
-    if (!isAdmin) {
-      setPendingAction('download');
-      setShowPasswordModal(true);
-      return;
-    }
-
-    // Admin user - proceed directly
-    proceedWithExport();
+    // Always require password for downloading task tracking
+    setPendingAction('download');
+    setShowPasswordModal(true);
   };
 
   // Show a clear loading state instead of a blank screen while data hydrates
